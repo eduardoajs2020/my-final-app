@@ -42,9 +42,9 @@ jobs:
 
       - name: Analisar dependências com OWASP Dependency-Check
         run: |
-          wget https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.0/dependency-check-8.4.0-bin.zip
-          unzip dependency-check-8.4.0-bin.zip
-          ./dependency-check/bin/dependency-check.sh --scan . --format HTML --out reports
+          docker run --rm -v $(pwd):/src -v $(pwd)/reports:/reports owasp/dependency-check:latest \
+              --scan /src --format HTML --out /reports
+
           # Opcional: Você pode querer fazer upload do relatório como um artefato
           # uses: actions/upload-artifact@v3
           # with:
