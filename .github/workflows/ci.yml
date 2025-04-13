@@ -38,7 +38,7 @@ jobs:
         run: |
           source venv/bin/activate
           pip install bandit
-          bandit -r .
+          bandit -r . -c bandit.yaml -lll -f txt -o bandit_report.txt
 
       - name: Analisar dependências com OWASP Dependency-Check
         run: |

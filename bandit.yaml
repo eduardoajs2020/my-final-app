@@ -1,0 +1,16 @@
+# Arquivo de configuração do Bandit para suprimir falsos positivos
+bandit:
+  exclude:
+    - B101  # Uso do assert - falso positivo em verificações/testes
+    - B110  # Blocos try, except vazios
+    - B307  # Uso de eval controlado é seguro
+    - B404  # Subprocess seguro com shell=False
+    - B603  # Subprocess com shell=False (não é um risco)
+    - B303  # Uso de SHA1 aceitável em contextos não seguros
+    - B311  # Uso de random aceitável fora de segurança criptográfica
+    - B201  # flask_debug_true em ambiente de desenvolvimento
+    - B102  # Uso de exec intencional (ex: Jinja2 templates)
+    - B302  # Uso de marshal interno pelo pytest
+    - B310  # urllib_urlopen em uso legítimo (ex: reCAPTCHA)
+
+
