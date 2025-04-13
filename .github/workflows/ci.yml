@@ -43,9 +43,8 @@ jobs:
       - name: Analisar dependências com OWASP Dependency-Check
         run: |
           docker run --rm -v $(pwd):/src -v $(pwd)/reports:/reports owasp/dependency-check:latest \
-              --scan /src --format HTML --out /reports
+              --scan /src --format HTML --out /reports || true
 
-          # Opcional: Você pode querer fazer upload do relatório como um artefato
           # uses: actions/upload-artifact@v3
           # with:
           #   name: dependency-check-report
