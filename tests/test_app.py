@@ -19,53 +19,53 @@ def test_login_success(client):
     usuario = os.getenv("USUARIO")  # Carrega do .env
     senha = os.getenv("SENHA")      # Carrega do .env
 
-    # Testa login válido
     response = client.post('/login', data={
         'username': usuario,
         'password': senha
     }, follow_redirects=True)
 
-    # Decodifica response.data para comparação com strings normais
     response_text = response.data.decode('utf-8')
-    assert "Adicione uma agora" in response_text
+
+    try:
+        assert "Adicione uma agora" in response_text
+    except AssertionError:
+        pytest.fail(f"Erro: Texto esperado 'Adicione uma agora' não encontrado na resposta:\n{response_text}")
 
 def test_login_failure(client):
-    usuario = os.getenv("USUARIO")  # Carrega do .env
+    usuario = os.getenv("USUARIO")
     senha_errada = "senha_incorreta"
 
-    # Testa login inválido
     response = client.post('/login', data={
         'username': usuario,
         'password': senha_errada
     })
     response_text = response.data.decode('utf-8')
-    assert "Login falhou" in response_text
+
+    assert "Login falhou" in response_text, f"Erro: Mensagem 'Login falhou' não encontrada na resposta:\n{response_text}"
 
 def test_protected_route_requires_login(client):
     response = client.get('/')
-    assert response.status_code == 302
-    assert '/login' in response.headers['Location']
+    assert response.status_code == 302, f"Erro: Código de status esperado 302, recebido {response.status_code}"
+    assert '/login' in response.headers['Location'], "Erro: Redirecionamento para /login não ocorreu."
 
 def test_logout(client):
-    usuario = os.getenv("USUARIO")  # Carrega do .env
-    senha = os.getenv("SENHA")      # Carrega do .env
+    usuario = os.getenv("USUARIO")
+    senha = os.getenv("SENHA")
 
-    # Testa logout após login
     client.post('/login', data={'username': usuario, 'password': senha})
     response = client.get('/logout', follow_redirects=True)
-
-    # Decodifica response.data para comparação com strings normais
     response_text = response.data.decode('utf-8')
-    assert "Usuário" in response_text
-    assert "Usuário de teste" in response_text
+
+    assert "Usuário" in response_text, f"Erro: Texto 'Usuário' não encontrado na resposta:\n{response_text}"
+    assert "Usuário de teste" in response_text, f"Erro: Texto 'Usuário de teste' não encontrado na resposta:\n{response_text}"
 
 def test_headers_seguranca(client):
-    usuario = os.getenv("USUARIO")  # Carrega do .env
-    senha = os.getenv("SENHA")      # Carrega do .env
+    usuario = os.getenv("USUARIO")
+    senha = os.getenv("SENHA")
 
-    # Testa cabeçalhos de segurança
     client.post('/login', data={'username': usuario, 'password': senha})
     response = client.get('/', follow_redirects=True)
-    assert response.headers.get('X-Content-Type-Options') == 'nosniff'
-    assert response.headers.get('X-Frame-Options') == 'DENY'
-    assert response.headers.get('X-XSS-Protection') == '1; mode=block'
+
+    assert response.headers.get('X-Content-Type-Options') == 'nosniff', "Erro: Cabeçalho 'X-Content-Type-Options' incorreto."
+    assert response.headers.get('X-Frame-Options') == 'DENY', "Erro: Cabeçalho 'X-Frame-Options' incorreto."
+    assert response.headers.get('X-XSS-Protection') == '1; mode=block', "Erro: Cabeçalho 'X-XSS-Protection' incorreto."
