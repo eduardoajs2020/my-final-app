@@ -15,7 +15,11 @@ def client():
     with flask_app.test_client() as client:
         yield client
 
-def test_login_success(client):
+def test_login_success_with_env_credentials(client):
+    """
+    Este teste verifica o cenário de login bem-sucedido usando as credenciais
+    carregadas das variáveis de ambiente.
+    """
     usuario = os.getenv("USUARIO")  # Carrega do .env
     senha = os.getenv("SENHA")      # Carrega do .env
 
@@ -26,12 +30,9 @@ def test_login_success(client):
 
     response_text = response.data.decode('utf-8')
 
-    try:
-        assert "Você ainda não tem tarefas" in response_text
-    except AssertionError:
-        pytest.fail(f"Erro: Texto esperado 'Você ainda não tem tarefas' não encontrado na resposta:\n{response_text}")
+    assert "Você ainda não tem tarefas" in response_text, f"Erro: Texto esperado 'Você ainda não tem tarefas' não encontrado na resposta (com credenciais do .env):\n{response_text}"
 
-def test_login_failure(client):
+def test_login_failure_incorrect_password(client):
     usuario = os.getenv("USUARIO")
     senha_errada = "senha_incorreta"
 
@@ -41,7 +42,7 @@ def test_login_failure(client):
     })
     response_text = response.data.decode('utf-8')
 
-    assert "Login falhou. Tente novamente." in response_text, f"Erro: Mensagem 'Login falhou. Tente novamente.' não encontrada na resposta:\n{response_text}"
+    assert "Login falhou. Tente novamente." in response_text, f"Erro: Mensagem 'Login falhou. Tente novamente.' não encontrada na resposta (com senha incorreta):\n{response_text}"
 
 def test_protected_route_requires_login(client):
     response = client.get('/')
