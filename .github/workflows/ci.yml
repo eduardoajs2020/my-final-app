@@ -34,6 +34,23 @@ jobs:
           pip install pytest  # Garantir instalação do pytest
           export PYTHONPATH=$PYTHONPATH:$(pwd)
 
+      - name: Analisar código com Bandit
+        run: |
+          source venv/bin/activate
+          pip install bandit
+          bandit -r .
+
+      - name: Analisar dependências com OWASP Dependency-Check
+        run: |
+          wget https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.0/dependency-check-8.4.0-bin.zip
+          unzip dependency-check-8.4.0-bin.zip
+          ./dependency-check/bin/dependency-check.sh --scan . --format HTML --out reports
+          # Opcional: Você pode querer fazer upload do relatório como um artefato
+          # uses: actions/upload-artifact@v3
+          # with:
+          #   name: dependency-check-report
+          #   path: reports/dependency-check-report.html
+
       - name: Rodar testes unitários
         env:
           USUARIO: ${{ secrets.USUARIO }}
@@ -41,3 +58,39 @@ jobs:
         run: |
           source venv/bin/activate
           python3 -m pytest tests/
+
+  deploy-review:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Build e Deploy para Ambiente de Revisão
+        env:
+          REVIEW_URL: ${{ vars.REVIEW_URL }}
+          # Outras variáveis de ambiente necessárias para o deploy
+        run: |
+          echo "Implementando lógica de build e deploy para o ambiente de revisão..."
+          # Aqui você colocaria os comandos para construir sua imagem Docker
+          # e fazer o deploy para o ambiente de revisão, usando a variável $REVIEW_URL
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [build, test] # Garante que build e test passem primeiro
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }} # Defina STAGING_URL nas variáveis do repositório
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Build e Deploy para Staging
+        env:
+          STAGING_URL: ${{ vars.STAGING_URL }}
+          # Outras variáveis de ambiente necessárias para o deploy de staging
+        run: |
+          echo "Implementando lógica de build e deploy para o ambiente de staging..."
+          # Aqui você colocaria os comandos para construir sua imagem Docker
+          # e fazer o deploy para o ambiente de staging, usando a variável $STAGING_URL
