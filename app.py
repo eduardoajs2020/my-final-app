@@ -1,9 +1,10 @@
 import os
 import logging
-from logging.handlers import SysLogHandler
-from flask import Flask, request, redirect, url_for, session, jsonify, render_template
+from logging.handlers import SysLogHandler, RotatingFileHandler
+from flask import Flask, request, redirect, url_for, session, jsonify, render_template, Response
 from functools import wraps
 from dotenv import load_dotenv
+from prometheus_client import Counter, Histogram, generate_latest
 
 # Carrega variáveis do .env
 load_dotenv()
@@ -11,30 +12,26 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "default_secret_key")
 
-# Configuração de logger
-logger = logging.getLogger()
+# Configuração de logger aprimorada
+logger = logging.getLogger("TaskManagerLogger")
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
+# Define manipulação para SysLog e arquivo de log com fallback
 if os.path.exists('/dev/log'):
     try:
-        handler = SysLogHandler(address='/dev/log')
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+        syslog_handler = SysLogHandler(address='/dev/log')
+        syslog_handler.setFormatter(formatter)
+        logger.addHandler(syslog_handler)
         logger.info("Usando SysLogHandler via /dev/log")
     except Exception as e:
-        print(f"Erro ao configurar SysLogHandler: {e}")
-        handler = logging.StreamHandler()
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.info("Fallback para StreamHandler")
-else:
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.info("Syslog não disponível. Usando StreamHandler.")
+        logger.error(f"Erro ao configurar SysLogHandler: {e}")
 
-logger.info("Aplicação iniciada.")
+# Configura logs para arquivo local
+log_file_handler = RotatingFileHandler('logs/task_manager.log', maxBytes=1000000, backupCount=5)
+log_file_handler.setFormatter(formatter)
+logger.addHandler(log_file_handler)
+logger.info("Logs também gravados em logs/task_manager.log")
 
 # Middleware de segurança
 @app.after_request
@@ -82,7 +79,6 @@ def login():
             return redirect(url_for("home"))
         logger.warning("Tentativa de login falhou.")
         return render_template("login.html", message="Login falhou. Tente novamente.")
-
     return render_template("login.html")
 
 @app.route("/logout")
@@ -92,9 +88,24 @@ def logout():
     logger.info("Usuário desconectado.")
     return redirect(url_for("login"))
 
+# Contadores para monitorar requisições e tarefas
+REQUEST_COUNT = Counter('app_requests_total', 'Total de requisições recebidas', ['method', 'endpoint'])
+TASK_COUNT = Counter('tasks_created_total', 'Total de tarefas criadas')
+REQUEST_LATENCY = Histogram('app_request_latency_seconds', 'Tempo de resposta por endpoint', ['endpoint'])
+
+@app.before_request
+def before_request():
+    REQUEST_COUNT.labels(method=request.method, endpoint=request.path).inc()
+
+@app.route('/metrics')
+def metrics():
+    return Response(generate_latest(), mimetype='text/plain')
+
+# Página inicial com monitoramento de latência
 @app.route("/")
 @login_required
-def home():
+@REQUEST_LATENCY.labels(endpoint='/').time()
+def home_page():
     username = session.get("username")
     user_tasks = task_db.get(username, [])
     logger.info(f"Usuário {username} acessou a página inicial.")
@@ -102,13 +113,15 @@ def home():
 
 @app.route("/add_task", methods=["GET", "POST"])
 @login_required
-def add_task():
+@REQUEST_LATENCY.labels(endpoint='/add_task').time()
+def add_task_page():
     if request.method == "POST":
         task_description = request.form.get("task")
         username = session.get("username")
         task_db[username].append(task_description)
+        TASK_COUNT.inc()
         logger.info(f"Tarefa adicionada para usuário {username}: {task_description}")
-        return redirect(url_for("home"))
+        return redirect(url_for("home_page"))
     return render_template("add_task.html")
 
 @app.route("/delete_task/<int:task_id>")
@@ -119,7 +132,7 @@ def delete_task(task_id):
     if 0 <= task_id < len(user_tasks):
         deleted_task = user_tasks.pop(task_id)
         logger.info(f"Tarefa excluída para usuário {username}: {deleted_task}")
-    return redirect(url_for("home"))
+    return redirect(url_for("home_page"))
 
 @app.route("/account_settings", methods=["GET", "POST"])
 @login_required
@@ -133,7 +146,7 @@ def account_settings():
         task_db[new_username] = task_db.pop(username, [])
         session["username"] = new_username
         logger.info(f"Informações do usuário {username} atualizadas para {new_username}.")
-        return redirect(url_for("home"))
+        return redirect(url_for("home_page"))
     return render_template("account_settings.html", username=username)
 
 if __name__ == "__main__":

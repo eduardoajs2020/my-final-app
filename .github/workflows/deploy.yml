@@ -1,0 +1,31 @@
+name: Deploy Flask App with Metrics
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.9'
+
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run Flask App
+      run: |
+        python app.py &
+        sleep 10  # Esperar o aplicativo subir
+
+    - name: Test Metrics Endpoint
+      run: curl http://localhost:5000/metrics

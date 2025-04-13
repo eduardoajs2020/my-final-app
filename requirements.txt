@@ -8,3 +8,4 @@ pytest>=8.3.5
 WTForms==2.2.1
 Jinja2>=2.11.3
 python-dotenv>=0.15.0
+prometheus_client
