@@ -32,8 +32,9 @@ jobs:
           pip install --upgrade pip  # Atualize o pip para evitar problemas
           pip install -r requirements.txt
           pip install pytest  # Garantir instalação do pytest
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
 
       - name: Rodar testes unitários
         run: |
           source venv/bin/activate
-          pytest tests/
+          python3 -m pytest tests/
