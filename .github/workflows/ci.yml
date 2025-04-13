@@ -35,6 +35,9 @@ jobs:
           export PYTHONPATH=$PYTHONPATH:$(pwd)
 
       - name: Rodar testes unitários
+        env:
+          USUARIO: ${{ secrets.USUARIO }}
+          SENHA: ${{ secrets.SENHA }}
         run: |
           source venv/bin/activate
           python3 -m pytest tests/
