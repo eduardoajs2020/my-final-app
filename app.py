@@ -1,11 +1,15 @@
 import os
 import logging
 from logging.handlers import SysLogHandler
-from flask import Flask, request, redirect, url_for, session
+from flask import Flask, request, redirect, url_for, session, make_response
 from functools import wraps
+#from flask_wtf import CSRFProtect
 
 app = Flask(__name__)
 app.secret_key = 'sua_chave_secreta_aqui'  # Alterar para uma chave segura
+
+# Proteção CSRF
+#csrf = CSRFProtect(app)
 
 # Configuração de logger
 logger = logging.getLogger()
@@ -32,6 +36,14 @@ else:
     logger.info("Syslog não disponível. Usando StreamHandler.")
 
 logger.info("Aplicação iniciada.")  # Log de inicialização
+
+# Middleware para headers HTTP de segurança
+@app.after_request
+def set_secure_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
 
 # Autenticação básica simulada
 users = {"usuario": "senha123"}
