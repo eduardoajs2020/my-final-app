@@ -25,11 +25,13 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v3  # Faz o checkout do código
 
-      - name: Instalar dependências
+      - name: Configurar Python e dependências
         run: |
-          python -m venv venv
+          python3 -m venv venv  # Certifique-se de usar 'python3'
           source venv/bin/activate
+          pip install --upgrade pip  # Atualize o pip para evitar problemas
           pip install -r requirements.txt
+          pip install pytest  # Garantir instalação do pytest
 
       - name: Rodar testes unitários
         run: |
