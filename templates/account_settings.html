@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações - Sistema de Usuários</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>Configurações de Conta</h2>
+
+        <form method="post" class="form">
+            <label for="username">Novo Usuário:</label>
+            <input type="text" id="username" name="username" value="{{ username }}" required>
+
+            <label for="password">Nova Senha:</label>
+            <input type="password" id="password" name="password">
+
+            <button type="submit">Atualizar</button>
+        </form>
+
+        <div class="info">
+            <p><a href="/">Voltar para as tarefas</a></p>
+        </div>
+    </div>
+</body>
+</html>

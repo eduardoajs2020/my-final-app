@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adicionar Tarefa - Sistema de Usuários</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>Adicionar Tarefa</h2>
+
+        <form method="post" class="form">
+            <label for="task">Descrição:</label>
+            <input type="text" id="task" name="task" required>
+
+            <button type="submit">Adicionar</button>
+        </form>
+
+        <div class="info">
+            <p><a href="/">Voltar para as tarefas</a></p>
+        </div>
+    </div>
+</body>
+</html>

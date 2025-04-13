@@ -44,16 +44,14 @@ def set_secure_headers(response):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     return response
 
-# Mock de banco de usuários e tarefas baseado em memória
+# Mock de banco de usuários baseado em .env
 user_db = {}
-task_db = {}
 
 def carregar_usuario_env():
     usuario = os.getenv("USUARIO")
     senha = os.getenv("SENHA")
     if usuario and senha:
         user_db[usuario] = {"username": usuario, "password": senha}
-        task_db[usuario] = []
         logger.info("Usuário padrão carregado do .env.")
     else:
         logger.warning("USUARIO e SENHA não definidos no .env.")
@@ -77,64 +75,72 @@ def login():
         user = user_db.get(username)
         if user and user["password"] == password:
             session["logged_in"] = True
-            session["username"] = username
             logger.info(f"Usuário {username} autenticado com sucesso.")
             return redirect(url_for("home"))
         logger.warning("Tentativa de login falhou.")
-        return render_template("login.html", message="Login falhou. Tente novamente.")
+        return render_template("login.html", message="Login falhou. Tente novamente.", user_hint=os.getenv("USUARIO"), pass_hint=os.getenv("SENHA"))
 
-    return render_template("login.html")
+    return render_template("login.html", user_hint=os.getenv("USUARIO"), pass_hint=os.getenv("SENHA"))
 
 @app.route("/logout")
 def logout():
-    session.pop("logged_in", None)
-    session.pop("username", None)
+    session["logged_in"] = False
     logger.info("Usuário desconectado.")
     return redirect(url_for("login"))
 
 @app.route("/")
 @login_required
 def home():
-    username = session.get("username")
-    user_tasks = task_db.get(username, [])
-    logger.info(f"Usuário {username} acessou a página inicial.")
-    return render_template("view_tasks.html", tasks=user_tasks)
+    logger.info("Rota '/' acessada com sucesso.")
+    return "Bem-vindo! Você está autenticado."
 
-@app.route("/add_task", methods=["GET", "POST"])
-@login_required
-def add_task():
-    if request.method == "POST":
-        task_description = request.form.get("task")
-        username = session.get("username")
-        task_db[username].append(task_description)
-        logger.info(f"Tarefa adicionada para usuário {username}: {task_description}")
-        return redirect(url_for("home"))
-    return render_template("add_task.html")
+# ---------------------
+# CRUD de Usuários (Mock)
+# ---------------------
 
-@app.route("/delete_task/<int:task_id>")
+@app.route("/users", methods=["GET"])
 @login_required
-def delete_task(task_id):
-    username = session.get("username")
-    user_tasks = task_db.get(username, [])
-    if 0 <= task_id < len(user_tasks):
-        deleted_task = user_tasks.pop(task_id)
-        logger.info(f"Tarefa excluída para usuário {username}: {deleted_task}")
-    return redirect(url_for("home"))
+def list_users():
+    return jsonify(list(user_db.values()))
 
-@app.route("/account_settings", methods=["GET", "POST"])
+@app.route("/users", methods=["POST"])
 @login_required
-def account_settings():
-    username = session.get("username")
-    if request.method == "POST":
-        new_username = request.form.get("username")
-        new_password = request.form.get("password")
-        user_db.pop(username, None)
-        user_db[new_username] = {"username": new_username, "password": new_password}
-        task_db[new_username] = task_db.pop(username, [])
-        session["username"] = new_username
-        logger.info(f"Informações do usuário {username} atualizadas para {new_username}.")
-        return redirect(url_for("home"))
-    return render_template("account_settings.html", username=username)
+def create_user():
+    data = request.json
+    username = data.get("username")
+    password = data.get("password")
+    if username in user_db:
+        return {"error": "Usuário já existe"}, 400
+    user_db[username] = {"username": username, "password": password}
+    logger.info(f"Usuário {username} criado.")
+    return {"message": "Usuário criado"}, 201
+
+@app.route("/users/<username>", methods=["GET"])
+@login_required
+def get_user(username):
+    user = user_db.get(username)
+    if not user:
+        return {"error": "Usuário não encontrado"}, 404
+    return user
+
+@app.route("/users/<username>", methods=["PUT"])
+@login_required
+def update_user(username):
+    data = request.json
+    if username not in user_db:
+        return {"error": "Usuário não encontrado"}, 404
+    user_db[username]["password"] = data.get("password", user_db[username]["password"])
+    logger.info(f"Usuário {username} atualizado.")
+    return {"message": "Usuário atualizado"}
+
+@app.route("/users/<username>", methods=["DELETE"])
+@login_required
+def delete_user(username):
+    if username in user_db:
+        del user_db[username]
+        logger.info(f"Usuário {username} deletado.")
+        return {"message": "Usuário deletado"}
+    return {"error": "Usuário não encontrado"}, 404
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")
