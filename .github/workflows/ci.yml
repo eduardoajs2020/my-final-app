@@ -2,20 +2,16 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "master" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout código
-        uses: actions/checkout@v3
-
-      - name: Configure NVP_API_KEY
-        env:
-          NVP_API_KEY: ${{ secrets.NVP_API_KEY }}
+        uses: actions/checkout@v3  # Faz o checkout do código
 
       - name: Build da imagem Docker
         env:
@@ -27,23 +23,15 @@ jobs:
     needs: build
     steps:
       - name: Checkout código
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3  # Faz o checkout do código
 
-      - name: Configure NVP_API_KEY
-        env:
-          NVP_API_KEY: ${{ secrets.NVP_API_KEY }}
-
-      - name: Instala dependências
-        env:
-          NVP_API_KEY: ${{ secrets.NVP_API_KEY }}
+      - name: Instalar dependências
         run: |
           python -m venv venv
           source venv/bin/activate
           pip install -r requirements.txt
 
       - name: Rodar testes unitários
-        env:
-          NVP_API_KEY: ${{ secrets.NVP_API_KEY }}
         run: |
           source venv/bin/activate
           pytest tests/
