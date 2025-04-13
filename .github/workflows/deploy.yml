@@ -28,4 +28,4 @@ jobs:
         sleep 10  # Esperar o aplicativo subir
 
     - name: Test Metrics Endpoint
-      run: curl http://localhost:5000/metrics
+      run: curl http://localhost:8080/metrics
