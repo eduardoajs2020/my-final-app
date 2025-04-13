@@ -27,9 +27,9 @@ def test_login_success(client):
     response_text = response.data.decode('utf-8')
 
     try:
-        assert "Adicione uma agora" in response_text
+        assert "Você ainda não tem tarefas" in response_text
     except AssertionError:
-        pytest.fail(f"Erro: Texto esperado 'Adicione uma agora' não encontrado na resposta:\n{response_text}")
+        pytest.fail(f"Erro: Texto esperado 'Você ainda não tem tarefas' não encontrado na resposta:\n{response_text}")
 
 def test_login_failure(client):
     usuario = os.getenv("USUARIO")
@@ -41,7 +41,7 @@ def test_login_failure(client):
     })
     response_text = response.data.decode('utf-8')
 
-    assert "Login falhou" in response_text, f"Erro: Mensagem 'Login falhou' não encontrada na resposta:\n{response_text}"
+    assert "Login falhou. Tente novamente." in response_text, f"Erro: Mensagem 'Login falhou. Tente novamente.' não encontrada na resposta:\n{response_text}"
 
 def test_protected_route_requires_login(client):
     response = client.get('/')
