@@ -1,22 +1,21 @@
 import os
 import logging
 from logging.handlers import SysLogHandler
-from flask import Flask, request, redirect, url_for, session, make_response
+from flask import Flask, request, redirect, url_for, session, jsonify, render_template
 from functools import wraps
-#from flask_wtf import CSRFProtect
+from dotenv import load_dotenv
+
+# Carrega variáveis do .env
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'sua_chave_secreta_aqui'  # Alterar para uma chave segura
-
-# Proteção CSRF
-#csrf = CSRFProtect(app)
+app.secret_key = os.getenv("SECRET_KEY", "default_secret_key")
 
 # Configuração de logger
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-# Tenta usar SysLogHandler, senão faz fallback para StreamHandler
 if os.path.exists('/dev/log'):
     try:
         handler = SysLogHandler(address='/dev/log')
@@ -35,9 +34,9 @@ else:
     logger.addHandler(handler)
     logger.info("Syslog não disponível. Usando StreamHandler.")
 
-logger.info("Aplicação iniciada.")  # Log de inicialização
+logger.info("Aplicação iniciada.")
 
-# Middleware para headers HTTP de segurança
+# Middleware de segurança
 @app.after_request
 def set_secure_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -45,8 +44,19 @@ def set_secure_headers(response):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     return response
 
-# Autenticação básica simulada
-users = {"usuario": "senha123"}
+# Mock de banco de usuários baseado em .env
+user_db = {}
+
+def carregar_usuario_env():
+    usuario = os.getenv("USUARIO")
+    senha = os.getenv("SENHA")
+    if usuario and senha:
+        user_db[usuario] = {"username": usuario, "password": senha}
+        logger.info("Usuário padrão carregado do .env.")
+    else:
+        logger.warning("USUARIO e SENHA não definidos no .env.")
+
+carregar_usuario_env()
 
 def login_required(f):
     @wraps(f)
@@ -62,19 +72,15 @@ def login():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
-        if username in users and users[username] == password:
+        user = user_db.get(username)
+        if user and user["password"] == password:
             session["logged_in"] = True
             logger.info(f"Usuário {username} autenticado com sucesso.")
             return redirect(url_for("home"))
         logger.warning("Tentativa de login falhou.")
-        return "Login falhou. Tente novamente."
-    return '''
-    <form method="post">
-        Usuário: <input type="text" name="username">
-        Senha: <input type="password" name="password">
-        <input type="submit">
-    </form>
-    '''
+        return render_template("login.html", message="Login falhou. Tente novamente.", user_hint=os.getenv("USUARIO"), pass_hint=os.getenv("SENHA"))
+
+    return render_template("login.html", user_hint=os.getenv("USUARIO"), pass_hint=os.getenv("SENHA"))
 
 @app.route("/logout")
 def logout():
@@ -87,6 +93,54 @@ def logout():
 def home():
     logger.info("Rota '/' acessada com sucesso.")
     return "Bem-vindo! Você está autenticado."
+
+# ---------------------
+# CRUD de Usuários (Mock)
+# ---------------------
+
+@app.route("/users", methods=["GET"])
+@login_required
+def list_users():
+    return jsonify(list(user_db.values()))
+
+@app.route("/users", methods=["POST"])
+@login_required
+def create_user():
+    data = request.json
+    username = data.get("username")
+    password = data.get("password")
+    if username in user_db:
+        return {"error": "Usuário já existe"}, 400
+    user_db[username] = {"username": username, "password": password}
+    logger.info(f"Usuário {username} criado.")
+    return {"message": "Usuário criado"}, 201
+
+@app.route("/users/<username>", methods=["GET"])
+@login_required
+def get_user(username):
+    user = user_db.get(username)
+    if not user:
+        return {"error": "Usuário não encontrado"}, 404
+    return user
+
+@app.route("/users/<username>", methods=["PUT"])
+@login_required
+def update_user(username):
+    data = request.json
+    if username not in user_db:
+        return {"error": "Usuário não encontrado"}, 404
+    user_db[username]["password"] = data.get("password", user_db[username]["password"])
+    logger.info(f"Usuário {username} atualizado.")
+    return {"message": "Usuário atualizado"}
+
+@app.route("/users/<username>", methods=["DELETE"])
+@login_required
+def delete_user(username):
+    if username in user_db:
+        del user_db[username]
+        logger.info(f"Usuário {username} deletado.")
+        return {"message": "Usuário deletado"}
+    return {"error": "Usuário não encontrado"}, 404
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")

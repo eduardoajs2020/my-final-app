@@ -1,0 +1,33 @@
+name: OWASP ZAP Baseline Scan
+
+on:
+  workflow_dispatch:  # Permite execução manual no GitHub
+
+jobs:
+  zap_scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Executar ZAP Baseline Scan
+        run: |
+          docker pull ghcr.io/zaproxy/zaproxy:weekly
+
+          docker run --rm -u zap -v $(pwd):/zap/wrk/:rw ghcr.io/zaproxy/zaproxy:weekly zap-baseline.py \
+            -t http://host.docker.internal:5000 \
+            -r zap-report.html \
+            -x zap-report.xml || true  # Garante que mesmo com falhas o workflow continue
+
+      - name: Upload do Relatório HTML
+        uses: actions/upload-artifact@v3
+        with:
+          name: zap-html-report
+          path: zap-report.html
+
+      - name: Upload do Relatório XML
+        uses: actions/upload-artifact@v3
+        with:
+          name: zap-xml-report
+          path: zap-report.xml

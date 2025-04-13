@@ -13,7 +13,13 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v3
 
+      - name: Configure NVP_API_KEY
+        env:
+          NVP_API_KEY: ${{ secrets.NVP_API_KEY }}
+
       - name: Build da imagem Docker
+        env:
+          NVP_API_KEY: ${{ secrets.NVP_API_KEY }}
         run: docker build -t delivery-system .
 
   test:
@@ -23,13 +29,21 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v3
 
+      - name: Configure NVP_API_KEY
+        env:
+          NVP_API_KEY: ${{ secrets.NVP_API_KEY }}
+
       - name: Instala dependências
+        env:
+          NVP_API_KEY: ${{ secrets.NVP_API_KEY }}
         run: |
           python -m venv venv
           source venv/bin/activate
           pip install -r requirements.txt
 
       - name: Rodar testes unitários
+        env:
+          NVP_API_KEY: ${{ secrets.NVP_API_KEY }}
         run: |
           source venv/bin/activate
           pytest tests/

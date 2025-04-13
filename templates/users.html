@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Usuários</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<div class="container">
+    <h2>Usuários Cadastrados</h2>
+    <ul>
+        {% for user in users %}
+        <li><strong>ID:</strong> {{ user.id }} — {{ user.username }}</li>
+        {% else %}
+        <li>Nenhum usuário cadastrado.</li>
+        {% endfor %}
+    </ul>
+</div>
+</body>
+</html>
