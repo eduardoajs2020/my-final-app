@@ -6,6 +6,10 @@ from functools import wraps
 from dotenv import load_dotenv
 from prometheus_client import Counter, Histogram, generate_latest
 
+# Cria o diretório de logs se não existir
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+
 # Carrega variáveis do .env
 load_dotenv()
 
@@ -76,7 +80,7 @@ def login():
             session["logged_in"] = True
             session["username"] = username
             logger.info(f"Usuário {username} autenticado com sucesso.")
-            return redirect(url_for("home"))
+            return redirect(url_for("home_page"))  # Correção: usar "home_page"
         logger.warning("Tentativa de login falhou.")
         return render_template("login.html", message="Login falhou. Tente novamente.")
     return render_template("login.html")
